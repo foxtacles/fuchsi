@@ -68,6 +68,23 @@ void Maximize(HWND hwnd)
 	SetForegroundWindow(hwnd);
 }
 
+string str_replace(const string& source, const char* find, const char* replace)
+{
+	unsigned int find_len = strlen(find);
+	unsigned int replace_len = strlen(replace);
+	unsigned int pos = 0;
+
+	string dest = source;
+
+	while ((pos = dest.find(find, pos)) != string::npos)
+	{
+		dest.replace(pos, find_len, replace);
+		pos += replace_len;
+	}
+
+	return dest;
+}
+
 int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE, LPSTR, int)
 {
 	global_mutex = CreateMutex(nullptr, TRUE, WND_CLASS_NAME);
@@ -188,6 +205,9 @@ LRESULT CALLBACK WindowProcedure(HWND hwnd, UINT message, WPARAM wParam, LPARAM 
 					{
 						query += data;
 
+						// not covered by UrlEscape
+						query = str_replace(query, "+", "%2B");
+
 						try
 						{
 							Utils::http_request(remoteAddr, remotePort, globalHeaders, "/", "POST", reinterpret_cast<const unsigned char*>(query.c_str()), query.size(), [](signed int code, const string& result)
@@ -201,7 +221,7 @@ LRESULT CALLBACK WindowProcedure(HWND hwnd, UINT message, WPARAM wParam, LPARAM 
 											EmptyClipboard();
 
 											HGLOBAL hglbCopy = GlobalAlloc(GMEM_MOVEABLE, (result.length() + 1) * sizeof(char));
-											LPSTR str  =(LPSTR) GlobalLock(hglbCopy);
+											LPSTR str = (LPSTR) GlobalLock(hglbCopy);
 											memcpy(str, result.c_str(), result.length());
 											str[result.length()] = '\0';
 											GlobalUnlock(hglbCopy);
