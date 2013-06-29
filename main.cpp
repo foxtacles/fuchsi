@@ -216,9 +216,7 @@ LRESULT CALLBACK WindowProcedure(HWND hwnd, UINT message, WPARAM wParam, LPARAM 
 							});
 						}
 						catch (happyhttp::Wobbly& e)
-						{
-							MessageBox(NULL,e.what(),e.what(),MB_OK);
-						}
+						{}
 					}
 
 					CloseClipboard();
