@@ -1,0 +1,4 @@
+#include "resource.h"
+
+ICON_MAIN      ICON    DISCARDABLE   fuchsi.ico
+FOXTACLES      BITMAP  DISCARDABLE   foxtacles.bmp

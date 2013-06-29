@@ -1,0 +1,7 @@
+bin
+obj
+ext/boost
+ext/boost_lib
+
+.depend
+.layout
