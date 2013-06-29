@@ -3,5 +3,5 @@ obj
 ext/boost
 ext/boost_lib
 
-.depend
-.layout
+*.depend
+*.layout
