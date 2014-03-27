@@ -3,7 +3,7 @@
 
 using namespace std;
 
-void Utils::http_request(const char* remoteAddr, unsigned int remotePort, const char** headers, const char* route, const char* method, const unsigned char* query, unsigned int size, function<void(signed int, const string&)> result)
+void Utils::http_request(const char* remoteAddr, unsigned int remotePort, const char** headers, const char* route, const char* method, const unsigned char* query, unsigned int size, function<void(signed int, string&)> result)
 {
 	static signed int code;
 	string result_data;

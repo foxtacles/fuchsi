@@ -4,11 +4,14 @@
 
 #define MSG_MINTRAYICON         (WM_USER + 1)
 #define WND_CLASS_NAME          "fuch.si"
+#define FOXYT_CHECKBOX           1000
 
 #include "resource.h"
 
 #include <ext/happyhttp.h>
 #include <utils/http.h>
+
+HWND checkbox;
 
 using namespace std;
 
@@ -107,7 +110,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE, LPSTR, int)
 HWND CreateMainWindow()
 {
 	HWND wnd;
-	wnd = CreateWindowEx(0, WND_CLASS_NAME, WND_CLASS_NAME, WS_OVERLAPPED | WS_CAPTION | WS_SYSMENU | WS_MINIMIZEBOX, (GetSystemMetrics(SM_CXSCREEN) / 2) - 105, (GetSystemMetrics(SM_CYSCREEN) / 2) - 105, 220, 240, HWND_DESKTOP, nullptr, instance, nullptr);
+	wnd = CreateWindowEx(0, WND_CLASS_NAME, WND_CLASS_NAME, WS_OVERLAPPED | WS_CAPTION | WS_SYSMENU | WS_MINIMIZEBOX, (GetSystemMetrics(SM_CXSCREEN) / 2) - 105, (GetSystemMetrics(SM_CYSCREEN) / 2) - 105, 220, 270, HWND_DESKTOP, nullptr, instance, nullptr);
 	ShowWindow(wnd, SW_SHOWNORMAL);
 	UpdateWindow(wnd);
 	return wnd;
@@ -167,6 +170,8 @@ LRESULT CALLBACK WindowProcedure(HWND hwnd, UINT message, WPARAM wParam, LPARAM 
 
 			hBitmap = LoadBitmap(GetModuleHandle(nullptr), MAKEINTRESOURCE(FOXTACLES));
 			GetObject(hBitmap, sizeof(BITMAP), &bitmap);
+
+			checkbox = CreateWindowEx(0, "Button", "fox.yt", 0x50010003, 130, 205, 80, 32, hwnd, (HMENU) FOXYT_CHECKBOX, instance, nullptr);
 			break;
 
 		case WM_CHANGECBCHAIN:
@@ -197,7 +202,7 @@ LRESULT CALLBACK WindowProcedure(HWND hwnd, UINT message, WPARAM wParam, LPARAM 
 					const char* original = (const char*) GlobalLock(hglb);
 					DWORD size = INTERNET_MAX_URL_LENGTH;
 
-					bool success = PathIsURL(original) && !strstr(original, "fuch.si/") && UrlEscape(original, data, &size, URL_ESCAPE_SEGMENT_ONLY) == S_OK;
+					bool success = PathIsURL(original) && !strstr(original, "fuch.si/") && !strstr(original, "fox.yt/") && UrlEscape(original, data, &size, URL_ESCAPE_SEGMENT_ONLY) == S_OK;
 
 					GlobalUnlock(hglb);
 
@@ -210,7 +215,7 @@ LRESULT CALLBACK WindowProcedure(HWND hwnd, UINT message, WPARAM wParam, LPARAM 
 
 						try
 						{
-							Utils::http_request(remoteAddr, remotePort, globalHeaders, "/", "POST", reinterpret_cast<const unsigned char*>(query.c_str()), query.size(), [](signed int code, const string& result)
+							Utils::http_request(remoteAddr, remotePort, globalHeaders, "/", "POST", reinterpret_cast<const unsigned char*>(query.c_str()), query.size(), [](signed int code, string& result)
 							{
 								switch (code)
 								{
@@ -218,6 +223,9 @@ LRESULT CALLBACK WindowProcedure(HWND hwnd, UINT message, WPARAM wParam, LPARAM 
 									{
 										if (!result.empty())
 										{
+											if (SendMessage(checkbox, BM_GETCHECK, 0, 0))
+												result = str_replace(result, "fuch.si", "fox.yt");
+
 											EmptyClipboard();
 
 											HGLOBAL hglbCopy = GlobalAlloc(GMEM_MOVEABLE, (result.length() + 1) * sizeof(char));

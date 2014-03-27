@@ -25,7 +25,7 @@
 			<Add directory="." />
 		</Compiler>
 		<Linker>
-			<Add option="-lws2_32 -lshlwapi" />
+			<Add option="-lws2_32 -lshlwapi -static" />
 			<Add library="gdi32" />
 			<Add library="user32" />
 			<Add library="kernel32" />
