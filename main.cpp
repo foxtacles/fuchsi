@@ -1,6 +1,8 @@
 #include <winsock2.h>
 #include <wininet.h>
 #include <shlwapi.h>
+#include <unordered_map>
+#include <string>
 
 #define MSG_MINTRAYICON         (WM_USER + 1)
 #define WND_CLASS_NAME          "fuch.si"
@@ -22,6 +24,8 @@ HDC hdc, hdcMem;
 HBITMAP hBitmap;
 BITMAP bitmap;
 PAINTSTRUCT ps;
+
+unordered_map<string, string> fuchsi_maps;
 
 HWND CreateMainWindow();
 int RegisterClasses();
@@ -162,6 +166,7 @@ void CleanUp()
 LRESULT CALLBACK WindowProcedure(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 {
 	static HWND hwndNextViewer;
+	static unsigned int last_draw = 0;
 
 	switch (message)
 	{
@@ -172,6 +177,35 @@ LRESULT CALLBACK WindowProcedure(HWND hwnd, UINT message, WPARAM wParam, LPARAM 
 			GetObject(hBitmap, sizeof(BITMAP), &bitmap);
 
 			checkbox = CreateWindowEx(0, "Button", "fox.yt", 0x50010003, 130, 205, 80, 32, hwnd, (HMENU) FOXYT_CHECKBOX, instance, nullptr);
+
+			RegisterHotKey(hwnd, 0, MOD_SHIFT, VK_HOME);
+			break;
+
+		case WM_HOTKEY:
+			last_draw = GetTickCount();
+
+			if (OpenClipboard(hwnd))
+			{
+				HGLOBAL hglb = GetClipboardData(CF_TEXT);
+				string content = (const char*) GlobalLock(hglb);
+				GlobalUnlock(hglb);
+
+				auto result = fuchsi_maps.find(content);
+				if (result != fuchsi_maps.end())
+				{
+					const auto& data = result->second;
+					EmptyClipboard();
+
+					HGLOBAL hglbCopy = GlobalAlloc(GMEM_MOVEABLE, (data.length() + 1) * sizeof(char));
+					LPSTR str = (LPSTR) GlobalLock(hglbCopy);
+					memcpy(str, data.c_str(), data.length());
+					str[data.length()] = '\0';
+					GlobalUnlock(hglbCopy);
+					SetClipboardData(CF_TEXT, hglbCopy);
+				}
+
+				CloseClipboard();
+			}
 			break;
 
 		case WM_CHANGECBCHAIN:
@@ -184,6 +218,12 @@ LRESULT CALLBACK WindowProcedure(HWND hwnd, UINT message, WPARAM wParam, LPARAM 
 
         case WM_DRAWCLIPBOARD:
 		{
+			if (GetTickCount() - last_draw < 1000)
+			{
+				SendMessage(hwndNextViewer, message, wParam, lParam);
+				break;
+			}
+
 			static UINT auPriorityList[] = {
 				CF_TEXT,
 			};
@@ -200,6 +240,7 @@ LRESULT CALLBACK WindowProcedure(HWND hwnd, UINT message, WPARAM wParam, LPARAM 
 
 					char data[INTERNET_MAX_URL_LENGTH];
 					const char* original = (const char*) GlobalLock(hglb);
+					string original_url = original;
 					DWORD size = INTERNET_MAX_URL_LENGTH;
 
 					bool success = PathIsURL(original) && !strstr(original, "fuch.si/") && !strstr(original, "fox.yt/") && UrlEscape(original, data, &size, URL_ESCAPE_SEGMENT_ONLY) == S_OK;
@@ -208,6 +249,7 @@ LRESULT CALLBACK WindowProcedure(HWND hwnd, UINT message, WPARAM wParam, LPARAM 
 
 					if (success)
 					{
+						last_draw = GetTickCount();
 						query += data;
 
 						// not covered by UrlEscape
@@ -215,12 +257,13 @@ LRESULT CALLBACK WindowProcedure(HWND hwnd, UINT message, WPARAM wParam, LPARAM 
 
 						try
 						{
-							Utils::http_request(remoteAddr, remotePort, globalHeaders, "/", "POST", reinterpret_cast<const unsigned char*>(query.c_str()), query.size(), [](signed int code, string& result)
+							Utils::http_request(remoteAddr, remotePort, globalHeaders, "/", "POST", reinterpret_cast<const unsigned char*>(query.c_str()), query.size(), [&original_url](signed int code, string& result)
 							{
 								switch (code)
 								{
 									case happyhttp::OK:
 									{
+										//Beep(1000,1000);
 										if (!result.empty())
 										{
 											if (SendMessage(checkbox, BM_GETCHECK, 0, 0))
@@ -234,6 +277,9 @@ LRESULT CALLBACK WindowProcedure(HWND hwnd, UINT message, WPARAM wParam, LPARAM 
 											str[result.length()] = '\0';
 											GlobalUnlock(hglbCopy);
 											SetClipboardData(CF_TEXT, hglbCopy);
+
+											fuchsi_maps[original_url] = result;
+											fuchsi_maps[result] = original_url;
 										}
 										break;
 									}
